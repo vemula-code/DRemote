@@ -334,7 +334,7 @@ class BridgeManager {
         { text: options.text, packageName: options.packageName }
       );
     } catch {
-      return { success: true, latencyMs: Math.max(Math.round(performance.now() - start), 4) };
+      return { success: false, latencyMs: 0, error: 'Command failed — ADB bridge required' };
     }
   }
 

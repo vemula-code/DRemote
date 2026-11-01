@@ -135,29 +135,28 @@ class MobileAutoConnectEngine {
   private async probePort(ip: string, port: number): Promise<boolean> {
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 500);
-      await fetch(`http://${ip}:${port}/apps`, {
+      const timer = setTimeout(() => controller.abort(), 600);
+      const res = await fetch(`http://${ip}:${port}/apps`, {
         method: 'GET',
         mode: 'no-cors',
         signal: controller.signal,
-      }).catch(() => {});
+      });
       clearTimeout(timer);
-      return true;
+      return res.type === 'opaque' || res.ok;
     } catch {
       return false;
     }
   }
 
   /**
-   * Dispatch Key / Command to Fire TV using DIAL (Port 8008) and ADB proxy
+   * Dispatch Key / Command to Fire TV using DIAL (Port 8008) or ADB proxy
    */
   public async sendDirectKey(
     device: FireTVDevice,
     key: string,
     extra?: { text?: string; packageName?: string }
-  ): Promise<{ success: boolean; latencyMs: number }> {
+  ): Promise<{ success: boolean; latencyMs: number; error?: string }> {
     const start = performance.now();
-    const keycode = KEYCODE_MAP[key] || 0;
 
     // 1. DIAL App Launch (YouTube, Netflix, Prime Video, Disney+)
     if (extra?.packageName) {
@@ -169,32 +168,25 @@ class MobileAutoConnectEngine {
       };
       const appName = dialAppMap[extra.packageName] || 'YouTube';
 
-      // Zero-CORS form submission to TV
+      // Direct zero-CORS form submission to TV port 8008
       sendDialCommandViaForm(device.ip, appName);
 
-      // Also try backend DIAL proxy if available
-      try {
-        await fetch('/api/bridge/dial/launch', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ip: device.ip, appName }),
-        }).catch(() => {});
-      } catch {}
-
-      return { success: true, latencyMs: Math.max(3, Math.round(performance.now() - start)) };
+      return { success: true, latencyMs: Math.max(8, Math.round(performance.now() - start)) };
     }
 
-    // 2. Physical Navigation & Media Key Events via DIAL / Whisperplay
-    try {
-      if (key === 'POWER' || key === 'TV_POWER' || key === 'STICK_POWER') {
-        sendDialCommandViaForm(device.ip, 'system');
-      }
+    // 2. Power / Wake (supported by DIAL /apps/system)
+    if (key === 'POWER' || key === 'TV_POWER' || key === 'STICK_POWER') {
+      sendDialCommandViaForm(device.ip, 'system');
+      return { success: true, latencyMs: Math.max(8, Math.round(performance.now() - start)) };
+    }
 
-      sendDialCommandViaForm(device.ip, `FireTVRemote?cmd=${encodeURIComponent(key)}&code=${keycode}`);
-    } catch {}
-
-    const latencyMs = Math.max(3, Math.round(performance.now() - start));
-    return { success: true, latencyMs };
+    // 3. D-Pad & Navigation Keys (UP, DOWN, LEFT, RIGHT, SELECT, HOME, BACK)
+    // Fire TV strictly requires ADB protocol on port 5555. Direct browser HTTP cannot send raw ADB packets.
+    return {
+      success: false,
+      latencyMs: 0,
+      error: 'D-Pad requires ADB Bridge running on local network (python3 dremote-bridge.py) or Bluetooth pairing.',
+    };
   }
 
   private startKeepalive() {

@@ -132,34 +132,44 @@ export const CleanFireRemote: React.FC<CleanFireRemoteProps> = ({
         </button>
       </div>
 
-      {/* 2. AUTO-DISCOVERED WI-FI STATUS BADGE & AUTO-DETECT BUTTON */}
-      <div className="w-full mb-3 flex items-center justify-between px-3 py-1.5 bg-slate-900/60 border border-slate-800/80 rounded-2xl text-[11px] text-slate-400">
+      {/* 2. WI-FI STATUS BADGE & BRIDGE INDICATOR */}
+      <div className="w-full mb-3 flex items-center justify-between px-3 py-2 bg-slate-900/80 border border-slate-800 rounded-2xl text-[11px] text-slate-400 gap-2">
         <button
           onClick={() => onOpenPairing(selectedDeviceId)}
-          className="flex items-center gap-1.5 font-semibold truncate hover:text-slate-200 transition text-left"
+          className="flex items-center gap-1.5 font-semibold truncate hover:text-slate-200 transition text-left flex-1 min-w-0"
           title="Click to view or edit device IP"
         >
           <span
             className={`w-2 h-2 rounded-full flex-shrink-0 ${
-              activeDevice.status === 'connected'
+              bridgeStatus === 'connected'
                 ? 'bg-emerald-400 animate-pulse'
-                : 'bg-amber-400 animate-ping'
+                : 'bg-amber-400'
             }`}
           />
-          <span className={`truncate ${activeDevice.status === 'connected' ? 'text-emerald-400' : 'text-amber-300'}`}>
-            {activeDevice.status === 'connected'
-              ? `Connected • ${activeDevice.name} (${activeDevice.ip})`
-              : `Searching Wi-Fi • ${activeDevice.name}`}
+          <span className={`truncate ${bridgeStatus === 'connected' ? 'text-emerald-400' : 'text-slate-300'}`}>
+            {bridgeStatus === 'connected'
+              ? `ADB Live (${bridgeLatency}ms) • ${activeDevice.name}`
+              : `IP: ${activeDevice.ip} • ADB Bridge Offline`}
           </span>
         </button>
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {bridgeStatus !== 'connected' && (
+            <button
+              onClick={onOpenWizard}
+              className="flex items-center gap-1 text-[11px] bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 px-2.5 py-1 rounded-xl font-bold transition active:scale-95 shadow-sm"
+              title="Learn how to start the 1-click ADB Bridge or Bluetooth"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-400" />
+              <span>Enable D-Pad</span>
+            </button>
+          )}
           <button
             onClick={onOpenAutoDetect}
-            className="flex items-center gap-1 text-[11px] bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 px-2.5 py-1 rounded-xl font-bold transition active:scale-95 shadow-sm"
-            title="Automatically scan home Wi-Fi and find your Fire TVs"
+            className="flex items-center gap-1 text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-2 py-1 rounded-xl font-medium transition active:scale-95"
+            title="Scan Wi-Fi"
           >
-            <Search className="w-3.5 h-3.5 text-cyan-400" />
-            <span>Auto-Detect</span>
+            <Search className="w-3 h-3 text-cyan-400" />
+            <span className="hidden sm:inline">Scan</span>
           </button>
         </div>
       </div>
